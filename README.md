@@ -10,7 +10,7 @@ Tracks **Projects** (PCB boards), the **Components** placed on each board, and *
 
 ## Tech Stack
 
-| | |
+| Layer | 
 |---|---|
 | Language | Go |
 | Router | [Gin](https://github.com/gin-gonic/gin) |
@@ -151,11 +151,12 @@ Checked in the service layer (`backend/service`).
 
 ## Key Design Decisions
 
-- **Soft delete vs. hard delete:** Projects and Components use soft delete (`is_deleted` flag) because deleting them cascades to dependent data. Placement Issues use a hard delete, since nothing depends on them.
-- **Request structs instead of binding straight into models:** clients can only send the fields we allow, so they cannot set `id`, timestamps or read-only fields.
-- **No full CRUD for `users`:** users are reference data only (linked by foreign keys).
-- **IDs over duplicated names:** foreign keys store IDs. Names such as `updatedby` and `reference` come from a JOIN at query time, so they never go out of date.
-- **Components are listed per project** (`?project_id=`), because a single project can have hundreds of components.
+- **Soft delete vs. hard delete:** Projects and Components use soft delete (`is_deleted` flag) since deleting either can cascade to a meaningful amount of dependent data (components, issues). Placement Issues use a hard delete, since nothing depends on them — there's no cascading risk to protect against.
+- **No full CRUD for `users`:** Users exist only as reference data (linked via foreign keys from Projects and Placement Issues). Full user management was scoped out to focus on the core placement-tracking functionality.
+- **IDs over duplicated names:** Foreign keys store IDs only. Where a readable name is useful in a response (e.g. a project's `updated_by` user name, or an issue's linked component name as `reference`), it's fetched via a JOIN at query time rather than stored as a duplicate column — this keeps the data from silently going out of sync.
+- **No relational "nested" GET routes:** Component listing is filtered via a query parameter (`?project_id=`) rather than a full "get all" endpoint, since a single project can have hundreds of components — returning everything unfiltered isn't realistic or useful.
+
+See `database_schema_reference.md` for the full table structures and relationships.
 
 ---
 
