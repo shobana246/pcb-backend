@@ -8,8 +8,7 @@ Tracks **Projects** (PCB boards), the **Components** placed on each board, and *
 
 ## Tech Stack
 
-| Layer | 
-|---|---|
+
 | Language | Go |
 | Router | [Gin](https://github.com/gin-gonic/gin) |
 | ORM | [GORM](https://gorm.io/) |
@@ -110,7 +109,7 @@ Full sample request bodies for each endpoint are documented in the testing notes
 - **IDs over duplicated names:** Foreign keys store IDs only. Where a readable name is useful in a response (e.g. a project's `updated_by` user name, or an issue's linked component name as `reference`), it's fetched via a JOIN at query time rather than stored as a duplicate column — this keeps the data from silently going out of sync.
 - **No relational "nested" GET routes:** Component listing is filtered via a query parameter (`?project_id=`) rather than a full "get all" endpoint, since a single project can have hundreds of components — returning everything unfiltered isn't realistic or useful.
 
-See `database_schema_reference.md` for the full table structures and relationships.
+See `database_schema` for the full table structures and relationships.
 
 ---
 
