@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"database/sql"
+	"errors"
 	"fmt"
 	"pcb-backend/backend/models"
 	"pcb-backend/backend/service"
@@ -11,28 +11,36 @@ import (
 )
 
 func ProjectCreation(c *gin.Context) {
-
-	var project models.Project
-
+	var project models.ProjectRequest
 	err := c.ShouldBindJSON(&project)
 	if err != nil {
-		c.JSON(400, gin.H{"message": "invalid request"})
+		c.JSON(400, gin.H{"message": "validation failed", "error": err.Error()})
 		return
 	}
 
-	err = service.ProjectCreationService(project)
+	err = service.ProjectCreationService(project.ToModel())
 	if err != nil {
-		c.JSON(500, gin.H{"message": "Failed to create project", "error": err.Error()})
+		switch {
+		case errors.Is(err, service.ErrInvalidInput):
+			c.JSON(400, gin.H{"message": "project_name and revision cannot be blank"})
+		case errors.Is(err, service.ErrUserNotFound):
+			c.JSON(400, gin.H{"message": "updated_by user does not exist"})
+		case errors.Is(err, service.ErrProjectExists):
+			c.JSON(409, gin.H{"message": "project with this name and revision already exists"})
+		default:
+			fmt.Println("create project error:", err)
+			c.JSON(500, gin.H{"message": "Failed to create project"})
+		}
 		return
 	}
 
-	c.JSON(200, gin.H{"message": "Project successfully created "})
-
+	c.JSON(200, gin.H{"message": "Project successfully created"})
 }
 
 func GetAllProjects(c *gin.Context) {
 	project, err := service.GetAllServiceProject()
 	if err != nil {
+		fmt.Println("get all projects error:", err)
 		c.JSON(500, gin.H{"message": "Failed to fetch the projects"})
 		return
 	}
@@ -40,8 +48,7 @@ func GetAllProjects(c *gin.Context) {
 }
 
 func GetProjectById(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := strconv.Atoi(idParam)
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(400, gin.H{"message": "Invalid Id"})
 		return
@@ -49,57 +56,68 @@ func GetProjectById(c *gin.Context) {
 
 	getData, err := service.GetProjectByIdService(id)
 	if err != nil {
-		c.JSON(404, gin.H{"message": "Project not found"})
+		if errors.Is(err, service.ErrProjectNotFound) {
+			c.JSON(404, gin.H{"message": "Project not found"})
+			return
+		}
+		fmt.Println("get project error:", err)
+		c.JSON(500, gin.H{"message": "Failed to fetch the project"})
 		return
 	}
 	c.JSON(200, getData)
-
 }
 
 func UpdateProject(c *gin.Context) {
-	fmt.Println("reached the update handler--->")
-	idparam := c.Param("id")
-	id, err := strconv.Atoi(idparam)
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		c.JSON(400, gin.H{"message": "Invalid request"})
+		c.JSON(400, gin.H{"message": "Invalid Id"})
 		return
 	}
-	var update_data models.Project
+
+	var update_data models.ProjectRequest
 	err = c.ShouldBindJSON(&update_data)
 	if err != nil {
-		c.JSON(400, gin.H{"message": "Invalid resquest"})
+		c.JSON(400, gin.H{"message": "validation failed", "error": err.Error()})
 		return
 	}
 
-	err = service.ProjectUpdateService(id, update_data)
-
+	err = service.ProjectUpdateService(id, update_data.ToModel())
 	if err != nil {
-		fmt.Println("erre in the service calling func", err)
-		c.JSON(404, gin.H{"message": "project not found or update failed"})
+		switch {
+		case errors.Is(err, service.ErrInvalidInput):
+			c.JSON(400, gin.H{"message": "project_name and revision cannot be blank"})
+		case errors.Is(err, service.ErrUserNotFound):
+			c.JSON(400, gin.H{"message": "updated_by user does not exist"})
+		case errors.Is(err, service.ErrProjectExists):
+			c.JSON(409, gin.H{"message": "another project with this name and revision already exists"})
+		case errors.Is(err, service.ErrProjectNotFound):
+			c.JSON(404, gin.H{"message": "Project not found"})
+		default:
+			fmt.Println("update project error:", err)
+			c.JSON(500, gin.H{"message": "Failed to update project"})
+		}
 		return
 	}
 	c.JSON(200, gin.H{"message": "project updated successfully"})
-
 }
 
 func DeleteProject(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := strconv.Atoi(idParam)
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		c.JSON(400, gin.H{"message": "Invalid id"})
+		c.JSON(400, gin.H{"message": "Invalid Id"})
 		return
 	}
 
 	err = service.ProjectDeleteService(id)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, service.ErrProjectNotFound) {
 			c.JSON(404, gin.H{"message": "Project not found"})
 			return
 		}
-		c.JSON(400, gin.H{"message": "Project not found"})
+		fmt.Println("delete project error:", err)
+		c.JSON(500, gin.H{"message": "Failed to delete project"})
 		return
 	}
 
 	c.JSON(200, gin.H{"message": "Project Deleted Successfully"})
-
 }

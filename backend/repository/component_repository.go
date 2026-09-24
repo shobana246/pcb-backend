@@ -17,7 +17,6 @@ func GetComponentRepo(ProjectId int) ([]models.Component, error) {
 	var components []models.Component
 
 	err := database.DB.
-		Select("id,project_id, component_name, package, placement_side, rotation, x_position, y_position, height, supplier, part_number, status, tolerance_position, tolerance_rotation, notes").
 		Where("project_id = ? AND is_deleted = ?", ProjectId, false).
 		Find(&components).Error
 
@@ -28,19 +27,16 @@ func GetByIdComponentRepo(id int) (models.Component, error) {
 	var data models.Component
 
 	err := database.DB.
-		Select("id,project_id, component_name, package, placement_side, rotation, x_position, y_position, height, supplier, part_number, status, tolerance_position, tolerance_rotation, notes").
 		Where("id = ? AND is_deleted = ?", id, false).
 		First(&data).Error
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return data, sql.ErrNoRows
 	}
-
-	return data, nil
+	return data, err
 }
 
 func UpdateComponentRepo(id int, component models.Component) error {
-
 	result := database.DB.
 		Model(&models.Component{}).
 		Where("id = ? AND is_deleted = ?", id, false).
@@ -57,23 +53,35 @@ func UpdateComponentRepo(id int, component models.Component) error {
 		return sql.ErrNoRows
 	}
 	return nil
-
 }
 
 func DeleteComponentRepo(id int) error {
-
 	result := database.DB.
 		Model(&models.Component{}).
-		Where("id = ?", id).
+		Where("id = ? AND is_deleted = ?", id, false).
 		Update("is_deleted", true)
 
 	if result.Error != nil {
 		return result.Error
 	}
-
 	if result.RowsAffected == 0 {
 		return sql.ErrNoRows
 	}
-
 	return nil
+}
+
+func ProjectActiveRepo(id int) (bool, error) {
+	var count int64
+	err := database.DB.Table("projects").
+		Where("id = ? AND is_deleted = ?", id, false).
+		Count(&count).Error
+	return count > 0, err
+}
+
+func ComponentNameExistsRepo(projectID int, name string, excludeID int) (bool, error) {
+	var count int64
+	err := database.DB.Table("component").
+		Where("project_id = ? AND component_name = ? AND is_deleted = ? AND id <> ?", projectID, name, false, excludeID).
+		Count(&count).Error
+	return count > 0, err
 }
