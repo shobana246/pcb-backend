@@ -1,0 +1,20 @@
+# Environment variables (contains DB password)
+.env
+
+# Go build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+main
+backend/main
+
+# Go workspace / test files
+*.test
+*.out
+
+# IDE
+.vscode/
+.idea/
+.DS_Store

@@ -1,0 +1,98 @@
+# Database Schema Reference — PCB Placement Tracking System
+
+**Database name:** `pcb_placement_db`
+**Total tables:** 4 (`users`, `projects`, `component`, `placement_issues`)
+
+This system tracks PCB (Printed Circuit Board) projects, the components placed on each board, and any placement issues found during inspection.
+
+---
+
+## 1. `users`
+
+Stores the people who create/update projects and resolve issues. No CRUD API is exposed for this table — it exists purely as reference data, since full user management was outside the scope of this assignment.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | INT (PK, AUTO_INCREMENT) | Unique user identifier |
+| `name` | VARCHAR(100) | User's display name |
+| `email` | VARCHAR(150), UNIQUE | User's email address |
+| `role` | ENUM('admin','engineer','reviewer') | User's role in the system |
+| `created_at` | DATETIME | When the user record was created |
+
+---
+
+## 2. `projects`
+
+Represents a single PCB project/board design. Each project can have many components.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | INT (PK, AUTO_INCREMENT) | Unique project identifier |
+| `project_name` | VARCHAR(150) | Name of the project/board |
+| `revision` | VARCHAR(100) | Revision label (e.g. "Rev B") |
+| `updated_at` | DATETIME (auto) | Auto-updates on every change |
+| `updated_by` | INT (FK → `users.id`) | User who last updated this project |
+| `is_deleted` | TINYINT(1), default 0 | Soft-delete flag |
+
+**Delete behavior:** Soft delete. Deleting a project marks it (and all its components) as `is_deleted = true`, rather than removing rows. This prevents accidental, irreversible loss of a project's entire component/issue history in one action.
+
+**Relationship:** `projects.updated_by → users.id`
+
+---
+
+## 3. `component`
+
+Represents one physical component placed on a project's board (e.g. a resistor, IC, connector). Each component belongs to exactly one project, and can have multiple placement issues logged against it.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | INT (PK, AUTO_INCREMENT) | Unique component identifier |
+| `project_id` | INT (FK → `projects.id`) | Project this component belongs to |
+| `component_name` | VARCHAR(100) | Component's name/label (e.g. "U14 - Microcontroller") |
+| `package` | VARCHAR(250) | Package type (e.g. "QFP-64") |
+| `category` | ENUM('Passive','IC','Connector','Mechanical') | Component category |
+| `placement_side` | VARCHAR(250) | Which side of the board (e.g. "Top") |
+| `rotation` | DECIMAL(5,2) | Placement rotation in degrees |
+| `x_position` | DECIMAL(6,3) | X coordinate (mm) |
+| `y_position` | DECIMAL(6,3) | Y coordinate (mm) |
+| `height` | DECIMAL(5,3) | Component height (mm) |
+| `supplier` | VARCHAR(250) | Supplier/manufacturer name |
+| `part_number` | VARCHAR(250) | Manufacturer part number |
+| `status` | ENUM('verified','warning','critical','unverified') | Inspection status |
+| `tolerance_position` | DECIMAL(5,3) | Allowed position tolerance (mm) |
+| `tolerance_rotation` | DECIMAL(4,2) | Allowed rotation tolerance (degrees) |
+| `image_url` | VARCHAR(250) | Reference image URL |
+| `notes` | VARCHAR(255) | Free-text inspection notes |
+| `created_at` | DATETIME (auto) | Set automatically on creation |
+| `updated_at` | DATETIME (auto) | Auto-updates on every change |
+| `is_deleted` | TINYINT(1), default 0 | Soft-delete flag |
+
+**Delete behavior:** Soft delete, for the same reason as Projects — a component can have its own linked issues, so a soft delete avoids silently destroying that inspection history.
+
+**Relationship:** `component.project_id → projects.id` (`ON DELETE CASCADE` at the database level, for cases outside the application's soft-delete path)
+
+---
+
+## 4. `placement_issues`
+
+Represents a specific problem found on a component during inspection (e.g. a rotation mismatch, height violation). Each issue belongs to exactly one component.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | INT (PK, AUTO_INCREMENT) | Unique issue identifier |
+| `component_id` | INT (FK → `component.id`) | Component this issue was found on |
+| `issue` | VARCHAR(255) | Description of the problem |
+| `severity` | ENUM('warning','critical') | How serious the issue is |
+| `status` | ENUM('open','in review','resolved') | Current resolution status |
+| `created_at` | DATETIME (auto) | Set automatically on creation |
+
+**Delete behavior:** Hard delete. Issues sit at the bottom of the data hierarchy — deleting one has no cascading effect on other tables, so there's no accidental-data-loss risk that would justify the extra complexity of soft delete here.
+
+**Relationship:** `placement_issues.component_id → component.id` (`ON DELETE CASCADE`)
+
+**Display note:** API responses for this table include a `reference` field — the linked component's name (e.g. "C236") — fetched via a JOIN with `component`, rather than stored directly, so it always stays in sync with the actual component data.
+
+---
+
+
+
