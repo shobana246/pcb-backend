@@ -33,6 +33,7 @@ func CreateIssuesService(issue models.Issue) error {
 	if issue.Issues == "" {
 		return ErrInvalidInput
 	}
+	issue.Status = models.Open
 
 	active, err := repository.ComponentActiveRepo(issue.ComponentId)
 	if err != nil {
@@ -78,9 +79,11 @@ func UpdateIssueByIdService(id int, status models.Status) error {
 }
 
 func DeleteIssueService(id int) error {
-	err := repository.DeleteIssueRepo(id)
-	if errors.Is(err, sql.ErrNoRows) {
-		return ErrIssueNotFound
+	if _, err := repository.GetIssuesByIdRepo(id); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrIssueNotFound
+		}
+		return err
 	}
-	return err
+	return repository.DeleteIssueRepo(id)
 }

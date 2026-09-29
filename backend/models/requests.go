@@ -34,10 +34,10 @@ type ComponentFields struct {
 
 func (f ComponentFields) ToModel() Component {
 	category := ComponentCategory(f.Category)
-
-	status := Unverified
+	var status *ComponentStatus
 	if f.Status != "" {
-		status = ComponentStatus(f.Status)
+		s := ComponentStatus(f.Status)
+		status = &s
 	}
 
 	return Component{
@@ -51,7 +51,7 @@ func (f ComponentFields) ToModel() Component {
 		Height:            f.Height,
 		Supplier:          f.Supplier,
 		PartNumber:        f.PartNumber,
-		Status:            &status,
+		Status:            status,
 		TolerancePosition: f.TolerancePosition,
 		ToleranceRotation: f.ToleranceRotation,
 		ImageUrl:          f.ImageUrl,
@@ -81,7 +81,6 @@ func (r CreateIssueRequest) ToModel() Issue {
 		ComponentId: r.ComponentID,
 		Issues:      r.Issue,
 		Severity:    IssueSeverity(r.Severity),
-		Status:      Open,
 	}
 }
 

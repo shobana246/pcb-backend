@@ -14,7 +14,8 @@ func ProjectCreation(c *gin.Context) {
 	var project models.ProjectRequest
 	err := c.ShouldBindJSON(&project)
 	if err != nil {
-		c.JSON(400, gin.H{"message": "validation failed", "error": err.Error()})
+		fmt.Println("validation error:", err.Error())
+		c.JSON(400, gin.H{"message": "validation failed"})
 		return
 	}
 
@@ -49,7 +50,7 @@ func GetAllProjects(c *gin.Context) {
 
 func GetProjectById(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
+	if err != nil || id <= 0 {
 		c.JSON(400, gin.H{"message": "Invalid Id"})
 		return
 	}
@@ -69,7 +70,7 @@ func GetProjectById(c *gin.Context) {
 
 func UpdateProject(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
+	if err != nil || id <= 0 {
 		c.JSON(400, gin.H{"message": "Invalid Id"})
 		return
 	}
@@ -77,7 +78,8 @@ func UpdateProject(c *gin.Context) {
 	var update_data models.ProjectRequest
 	err = c.ShouldBindJSON(&update_data)
 	if err != nil {
-		c.JSON(400, gin.H{"message": "validation failed", "error": err.Error()})
+		fmt.Println("validation error:", err.Error())
+		c.JSON(400, gin.H{"message": "validation failed"})
 		return
 	}
 
@@ -103,7 +105,7 @@ func UpdateProject(c *gin.Context) {
 
 func DeleteProject(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
+	if err != nil || id <= 0 {
 		c.JSON(400, gin.H{"message": "Invalid Id"})
 		return
 	}

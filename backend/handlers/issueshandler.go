@@ -13,8 +13,10 @@ import (
 func CreateIssues(c *gin.Context) {
 	var req models.CreateIssueRequest
 	err := c.ShouldBindJSON(&req)
+
 	if err != nil {
-		c.JSON(400, gin.H{"message": "validation failed", "error": err.Error()})
+		fmt.Println("validation error:", err.Error())
+		c.JSON(400, gin.H{"message": "validation failed"})
 		return
 	}
 
@@ -46,7 +48,7 @@ func GetAllIssues(c *gin.Context) {
 
 func GetIssuesById(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
+	if err != nil || id <= 0 {
 		c.JSON(400, gin.H{"message": "Invalid Id"})
 		return
 	}
@@ -66,7 +68,7 @@ func GetIssuesById(c *gin.Context) {
 
 func UpdateIssueById(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
+	if err != nil || id <= 0 {
 		c.JSON(400, gin.H{"message": "Invalid Id"})
 		return
 	}
@@ -74,7 +76,8 @@ func UpdateIssueById(c *gin.Context) {
 	var req models.UpdateIssueRequest
 	err = c.ShouldBindJSON(&req)
 	if err != nil {
-		c.JSON(400, gin.H{"message": "validation failed", "error": err.Error()})
+		fmt.Println("validation error:", err.Error())
+		c.JSON(400, gin.H{"message": "validation failed"})
 		return
 	}
 
@@ -96,7 +99,7 @@ func UpdateIssueById(c *gin.Context) {
 
 func DeleteIssue(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
+	if err != nil || id <= 0 {
 		c.JSON(400, gin.H{"message": "Invalid Id"})
 		return
 	}
