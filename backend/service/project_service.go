@@ -61,10 +61,17 @@ func GetProjectByIdService(id int) (models.Project, error) {
 }
 
 func ProjectUpdateService(id int, project models.Project) error {
+	active, err := repository.ProjectActiveRepo(id)
+	if err != nil {
+		return err
+	}
+	if !active {
+		return ErrProjectNotFound
+	}
 	if err := checkProject(&project, id); err != nil {
 		return err
 	}
-	err := repository.ProjectUpdateRepo(id, project)
+	err = repository.ProjectUpdateRepo(id, project)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrProjectNotFound
 	}

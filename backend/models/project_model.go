@@ -8,7 +8,7 @@ type Project struct {
 	Revision      string    `json:"revision"`
 	UpdatedAt     time.Time `json:"updated_at"`
 	UpdatedBy     int       `json:"updated_by"`
-	UpdatedByName string    `gorm:"->;-:migration" json:"updatedby"`
+	UpdatedByName string    `gorm:"->;-:migration" json:"updated_by_name"`
 }
 
 func (Project) TableName() string {

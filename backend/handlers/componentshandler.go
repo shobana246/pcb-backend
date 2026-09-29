@@ -13,8 +13,10 @@ import (
 func CreateComponent(c *gin.Context) {
 	var req models.CreateComponentRequest
 	err := c.ShouldBindJSON(&req)
+
 	if err != nil {
-		c.JSON(400, gin.H{"message": "validation failed", "error": err.Error()})
+		fmt.Println("validation error:", err.Error())
+		c.JSON(400, gin.H{"message": "validation failed"})
 		return
 	}
 
@@ -22,7 +24,7 @@ func CreateComponent(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, service.ErrInvalidInput):
-			c.JSON(400, gin.H{"message": "component_name cannot be blank"})
+			c.JSON(400, gin.H{"message": " component_name and package cannot be blank"})
 		case errors.Is(err, service.ErrProjectNotFound):
 			c.JSON(404, gin.H{"message": "project not found"})
 		case errors.Is(err, service.ErrComponentExists):
@@ -39,7 +41,7 @@ func CreateComponent(c *gin.Context) {
 
 func GetComponent(c *gin.Context) {
 	projectID, err := strconv.Atoi(c.Query("project_id"))
-	if err != nil {
+	if err != nil || projectID <= 0 {
 		c.JSON(400, gin.H{"message": "project_id is required and must be a number"})
 		return
 	}
@@ -60,7 +62,7 @@ func GetComponent(c *gin.Context) {
 
 func GetByIdComponent(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
+	if err != nil || id <= 0 {
 		c.JSON(400, gin.H{"message": "Invalid Id"})
 		return
 	}
@@ -80,15 +82,17 @@ func GetByIdComponent(c *gin.Context) {
 
 func UpdateComponent(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
+	if err != nil || id <= 0 {
 		c.JSON(400, gin.H{"message": "Invalid Id"})
 		return
 	}
 
 	var req models.ComponentFields
 	err = c.ShouldBindJSON(&req)
+
 	if err != nil {
-		c.JSON(400, gin.H{"message": "validation failed", "error": err.Error()})
+		fmt.Println("validation error:", err.Error())
+		c.JSON(400, gin.H{"message": "validation failed"})
 		return
 	}
 
@@ -112,7 +116,7 @@ func UpdateComponent(c *gin.Context) {
 
 func DeleteComponent(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
+	if err != nil || id <= 0 {
 		c.JSON(400, gin.H{"message": "Invalid Id"})
 		return
 	}

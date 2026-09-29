@@ -8,19 +8,20 @@ import (
 	"strings"
 )
 
-// ErrInvalidInput and ErrProjectNotFound are already declared in the project service file.
 var (
 	ErrComponentExists   = errors.New("component already exists in this project")
 	ErrComponentNotFound = errors.New("component not found")
 )
 
 func ComponentCreationService(component models.Component) error {
-	component.ComponentName = strings.TrimSpace(component.ComponentName)
-	if component.ComponentName == "" {
-		return ErrInvalidInput
+	if err := cleanComponent(&component); err != nil {
+		return err
+	}
+	if component.Status == nil {
+		s := models.Unverified
+		component.Status = &s
 	}
 
-	// Rule: the project must exist and not be deleted
 	active, err := repository.ProjectActiveRepo(component.ProjectId)
 	if err != nil {
 		return err
@@ -29,7 +30,6 @@ func ComponentCreationService(component models.Component) error {
 		return ErrProjectNotFound
 	}
 
-	// Rule: the same component name cannot appear twice in one project
 	exists, err := repository.ComponentNameExistsRepo(component.ProjectId, component.ComponentName, 0)
 	if err != nil {
 		return err
@@ -62,17 +62,19 @@ func GetByIdComponentService(id int) (models.Component, error) {
 }
 
 func UpdateComponentService(id int, component models.Component) error {
-	component.ComponentName = strings.TrimSpace(component.ComponentName)
-	if component.ComponentName == "" {
-		return ErrInvalidInput
-	}
-
 	existing, err := repository.GetByIdComponentRepo(id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrComponentNotFound
 	}
 	if err != nil {
 		return err
+	}
+	if err := cleanComponent(&component); err != nil {
+		return err
+	}
+
+	if component.Status == nil {
+		component.Status = existing.Status
 	}
 
 	exists, err := repository.ComponentNameExistsRepo(existing.ProjectId, component.ComponentName, id)
@@ -96,4 +98,16 @@ func DeleteComponentService(id int) error {
 		return ErrComponentNotFound
 	}
 	return err
+}
+
+func cleanComponent(c *models.Component) error {
+	c.ComponentName = strings.TrimSpace(c.ComponentName)
+	c.Package = strings.TrimSpace(c.Package)
+	c.PartNumber = strings.TrimSpace(c.PartNumber)
+	c.Supplier = strings.TrimSpace(c.Supplier)
+
+	if c.ComponentName == "" || c.Package == "" {
+		return ErrInvalidInput
+	}
+	return nil
 }
